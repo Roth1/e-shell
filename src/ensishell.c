@@ -7,9 +7,12 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 #include "variante.h"
 #include "readcmd.h"
+#include <sys/types.h>
+#include <sys/wait.h>
 
 #ifndef VARIANTE
 #error "Variante non défini !!"
@@ -43,27 +46,28 @@ int executer(char *line)
 	}
 	/* fork was successful -> RET 0 */
 	if(pid_fils == 0) {
-		execvp(l->seq[0], l->seq);
+		execvp(l->seq[1][0], l->seq[1]);
 		/* if execvp returns, it failed */
 		return 1;
-	} else {
+        } else {
 		/* father has to wait for his child to terminate */
+		pid_t tpid ;
 		do {
-			pid_t tpid = wait(&etat_fils);
-			if(tpid != pid_fils) {
-				terminate(tpid);
-			}
-		} while(tpid != child_pid);
+			tpid = wait(&etat_fils);
+			//if(tpid != pid_fils) {
+				//process_terminated(tpid);
+				//}
+		} while(tpid != pid_fils);
 		/* status of the child should be 0 */
-		return child_status;
-	}
+		return etat_fils;
+        }
 }
 
-SCM executer_wrapper(SCM x)
-{
-        return scm_from_int(executer(scm_to_locale_stringn(x, 0)));
-}
-#endif
+//SCM executer_wrapper(SCM x)
+//{
+//        return scm_from_int(executer(scm_to_locale_stringn(x, 0)));
+//}
+//#endif
 
 
 void terminate(char *line) {
@@ -81,11 +85,11 @@ void terminate(char *line) {
 int main() {
         printf("Variante %d: %s\n", VARIANTE, VARIANTE_STRING);
 
-#ifdef USE_GUILE
-        scm_init_guile();
-        /* register "executer" function in scheme */
-        scm_c_define_gsubr("executer", 1, 0, 0, executer_wrapper);
-#endif
+//#ifdef USE_GUILE
+//        scm_init_guile();
+//        /* register "executer" function in scheme */
+//        scm_c_define_gsubr("executer", 1, 0, 0, executer_wrapper);
+//#endif
 
 	while (1) {
 		struct cmdline *l;
@@ -112,16 +116,16 @@ int main() {
 #endif
 
 
-#ifdef USE_GUILE
-		/* The line is a scheme command */
-		if (line[0] == '(') {
-			char catchligne[strlen(line) + 256];
-			sprintf(catchligne, "(catch #t (lambda () %s) (lambda (key . parameters) (display \"mauvaise expression/bug en scheme\n\")))", line);
-			scm_eval_string(scm_from_locale_string(catchligne));
-			free(line);
-                        continue;
-                }
-#endif
+//#ifdef USE_GUILE
+//		/* The line is a scheme command */
+//		if (line[0] == '(') {
+//			char catchligne[strlen(line) + 256];
+//			sprintf(catchligne, "(catch #t (lambda () %s) (lambda (key . parameters) (display \"mauvaise expression/bug en scheme\n\")))", line);
+//			scm_eval_string(scm_from_locale_string(catchligne));
+//			free(line);
+//                        continue;
+//                }
+//#endif
 
 		/* parsecmd free line and set it up to 0 */
 		l = parsecmd( & line);

@@ -12,29 +12,29 @@ enable_testing()
 #####
 # Guile 2.0 by default
 
-#execute_process(COMMAND pkg-config --cflags guile-2.0 OUTPUT_VARIABLE GUILE_PKG_CFLAGS)
-#execute_process(COMMAND pkg-config --libs guile-2.0 OUTPUT_VARIABLE GUILE_PKG_LDFLAGS)
+execute_process(COMMAND pkg-config --cflags guile-2.0 OUTPUT_VARIABLE GUILE_PKG_CFLAGS)
+execute_process(COMMAND pkg-config --libs guile-2.0 OUTPUT_VARIABLE GUILE_PKG_LDFLAGS)
 
 # Guile 1.8 if guile 2.0 is not available
-#if ("${GUILE_PKG_LDFLAGS}" STREQUAL "")
-#  execute_process(COMMAND pkg-config --cflags guile-1.8 OUTPUT_VARIABLE GUILE_PKG_CFLAGS)
-#  execute_process(COMMAND pkg-config --libs guile-1.8 OUTPUT_VARIABLE GUILE_PKG_LDFLAGS)
-#endif()
+if ("${GUILE_PKG_LDFLAGS}" STREQUAL "")
+  execute_process(COMMAND pkg-config --cflags guile-1.8 OUTPUT_VARIABLE GUILE_PKG_CFLAGS)
+  execute_process(COMMAND pkg-config --libs guile-1.8 OUTPUT_VARIABLE GUILE_PKG_LDFLAGS)
+endif()
 
 # aucun Guile n'a été trouvé
-#if (NOT "${GUILE_PKG_LDFLAGS}" STREQUAL "")
-#  set(USE_GUILE 1)
-#  string(STRIP ${GUILE_PKG_CFLAGS} GUILE_CFLAGS)
-#  string(STRIP ${GUILE_PKG_LDFLAGS} GUILE_LDFLAGS)
+if (NOT "${GUILE_PKG_LDFLAGS}" STREQUAL "")
+  set(USE_GUILE 1)
+  string(STRIP ${GUILE_PKG_CFLAGS} GUILE_CFLAGS)
+  string(STRIP ${GUILE_PKG_LDFLAGS} GUILE_LDFLAGS)
 
   # Ensimag debug: if libltld.so is required but not there, put explicit path
-#  find_library(LIBLTDL ltdl)
-#  if (${GUILE_LDFLAGS} MATCHES "-lltdl" AND NOT ${LIBLTDL})
-#    string(REPLACE "-lltdl" "/usr/lib64/libltdl.so.7" GUILE_LDFLAGS ${GUILE_LDFLAGS})
-#  endif()
-#else()
-#  set(USE_GUILE 0)
-#endif()
+  find_library(LIBLTDL ltdl)
+  if (${GUILE_LDFLAGS} MATCHES "-lltdl" AND NOT ${LIBLTDL})
+    string(REPLACE "-lltdl" "/usr/lib64/libltdl.so.7" GUILE_LDFLAGS ${GUILE_LDFLAGS})
+  endif()
+else()
+  set(USE_GUILE 0)
+endif()
 
 # Debug build
 
