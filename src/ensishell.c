@@ -31,17 +31,32 @@ int executer(char *line)
 	 * parsecmd, then fork+execvp, for a single command.
 	 * pipe and i/o redirection are not required.
 	 */
+	int etat_fils;
+	pid_t pid_fils;
 	struct cmdline *l;
 	l = parsecmd(&line);
-	pid_t pid_fils = fork();
-	/* Fork was successful -> RET 0 */
-	if(!pid_fils) {
-		execvp(line[0], line);
-		return 1;
+	pid_fils = fork();
+	/* error while forking */
+	if(pid_fils == -1) {
+		perror("fork");
+		exit(EXIT_FAILURE);
 	}
-	/* Remove this line when using parsecmd as it will free it */
-	//free(line);	
-	return 0;
+	/* fork was successful -> RET 0 */
+	if(pid_fils == 0) {
+		execvp(l->seq[0], l->seq);
+		/* if execvp returns, it failed */
+		return 1;
+	} else {
+		/* father has to wait for his child to terminate */
+		do {
+			pid_t tpid = wait(&etat_fils);
+			if(tpid != pid_fils) {
+				terminate(tpid);
+			}
+		} while(tpid != child_pid);
+		/* status of the child should be 0 */
+		return child_status;
+	}
 }
 
 SCM executer_wrapper(SCM x)
