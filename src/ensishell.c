@@ -21,8 +21,8 @@
  * lines in CMakeLists.txt.
  */
 
-#if USE_GUILE == 1
-#include <libguile.h>
+//#if USE_GUILE == 1
+//#include <libguile.h>
 
 int executer(char *line)
 {
@@ -31,11 +31,16 @@ int executer(char *line)
 	 * parsecmd, then fork+execvp, for a single command.
 	 * pipe and i/o redirection are not required.
 	 */
-	printf("Not implemented: can not execute %s\n", line);
-
+	struct cmdline *l;
+	l = parsecmd(&line);
+	pid_t pid_fils = fork();
+	/* Fork was successful -> RET 0 */
+	if(!pid_fils) {
+		execvp(line[0], line);
+		return 1;
+	}
 	/* Remove this line when using parsecmd as it will free it */
-	free(line);
-	
+	//free(line);	
 	return 0;
 }
 
@@ -79,7 +84,13 @@ int main() {
 		line = readline(prompt);
 		if (line == 0 || ! strncmp(line,"exit", 4)) {
 			terminate(line);
+		} else {
+			if(!executer(line)) {
+				printf("Not implemented: can not execute %s\n", line);
+			}
+			terminate(line);
 		}
+		
 
 #ifdef USE_GNU_READLINE
 		add_history(line);
