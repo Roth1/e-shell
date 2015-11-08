@@ -163,7 +163,7 @@ void timeHandler(int signum, siginfo_t *data, void *context) {
 	} else {
 		struct timeval time_terminated;
 		gettimeofday(&time_terminated, NULL);
-		printf("pid %d:%s terminated (%ldms).\n", task->pid, task->cmd, (-task->task_time.tv_sec + time_terminated.tv_sec)*1000+(-task->task_time.tv_usec+time_terminated.tv_usec)/1000);
+		printf("pid %d:%s terminated (%ldms).\n", task->pid, task->cmd, ((time_terminated.tv_sec - task->task_time.tv_sec) * 1000) + ((time_terminated.tv_usec - task->task_time.tv_usec) / 1000));
 	}
 }
 
