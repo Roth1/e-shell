@@ -5,12 +5,13 @@ Tasks create_tasks(void ) {
 }
 
 // Add the new task at the start of the list.
-Tasks add_task(Tasks task, pid_t pid; char *cmd) {
+Tasks add_task(Tasks task, pid_t pid, char *cmd) {
     Tasks new_task = malloc(sizeof(*new_task));
-    new_task->next = *task;
+    new_task->next = task;
     new_task->pid = pid;
     new_task->cmd = malloc((strlen(cmd)+1)*sizeof(char));
     strcpy(new_task->cmd, cmd);
+    gettimeofday(&(new_task->task_time), NULL);
     return new_task;
 }
     
@@ -48,7 +49,7 @@ Tasks find_task(Tasks task, pid_t pid) {
         if(task->pid == pid) {
             return task;
         }
-        task != task->next;
+        task = task->next;
     }
     return NULL;
 }

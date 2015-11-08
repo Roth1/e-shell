@@ -48,7 +48,7 @@ set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} ${GUILE_CFLAGS} -Wall -Werror -s
 # et le numéro de la variante que vous avez choisi
 #########
 set(VARIANTE_LOGINS maillofr rothm)
-set(VARIANTE_SUJET 1)
+set(VARIANTE_SUJET 3)
 ###
 list(SORT VARIANTE_LOGINS)
 if (VARIANTE_LOGINS MATCHES "login[123]")
@@ -71,7 +71,7 @@ configure_file (
 # Si vous utilisez plusieurs fichiers, en plus de ensishell.c, pour votre
 # shell il faut les ajouter ici
 ##
-add_executable(ensishell src/readcmd.c src/ensishell.c)
+add_executable(ensishell src/readcmd.c src/ensishell.c src/tasks.c)
 target_link_libraries(ensishell readline history ${GUILE_LDFLAGS})
 
 ##

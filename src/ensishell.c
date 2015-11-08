@@ -17,7 +17,7 @@
 
 #include "variante.h"
 #include "readcmd.h"
-
+#include "tasks.h"
 
 #ifndef VARIANTE
 #error "Variante non défini !!"
@@ -32,7 +32,21 @@
 #if USE_GUILE == 1
 #include <libguile.h>
 
-pid_t creer_processus(char ***seq, char *in, char *out, unsigned char bg) {
+Tasks task_list;
+
+void timeHandler(siginfo_t *data, void *context) {
+	Tasks task = find_task(task_list, data->si_pid);
+	/* no corresponding task/command was found */
+	if(!task) {
+		printf("pid %d terminated.\n", data->si_pid);
+	} else {
+		struct timeval time_terminated;
+		gettimeofday(&time_terminated, NULL);
+		printf("pid %d:%s terminated (%ldms).\n", task->pid, task->cmd, (-task->task_time.tv_sec + time_terminated.tv_sec)*1000+(-task->task_time.tv_usec+time_terminated.tv_usec)/1000);
+	}
+}
+
+pid_t creer_processus(char ***seq, char *in, char *out) {
 	int i = 0;
 	/* limited to 2 commands ! */
 	int pipe_in[2];
@@ -95,13 +109,13 @@ pid_t creer_processus(char ***seq, char *in, char *out, unsigned char bg) {
 				close(descripteur_out);
 			}
 			/* if execvp returns -1, it failed */
-			if(execvp(l->seq[i][0], l->seq[i]) == -1) {
+			if(execvp(seq[i][0], seq[i]) == -1) {
 				perror("execvp");
 				exit(EXIT_FAILURE);
 			}
 		/* pid_fils is added to list of tasks */
 		} else {
-			add_task(&task_list, pid_fils, bg);
+			task_list = (Tasks) add_task(task_list, pid_fils, seq[i][0]);
 			/* no next command -> set last process */
 			if(!seq[i+1]) {
 				dernier_pid = pid_fils;
@@ -110,12 +124,12 @@ pid_t creer_processus(char ***seq, char *in, char *out, unsigned char bg) {
 		/* */
 		if(!seq[i+1] && i > 0) {
 			close(pipe_in[0]);
-			close(pipe_in[0]);
+			close(pipe_in[1]);
 		}
 		/* deal with the next process */
 		i++;
 	}
-	return dernier_processus;
+	return dernier_pid;
 }
 
 int executer(char *line)
@@ -135,7 +149,7 @@ int executer(char *line)
 		return 1;
 	}
 	/* create a process according to given parameters */
-	pid_fils = creer_processus(l->seq, l->in, l->out, l->bg);
+	pid_fils = creer_processus(l->seq, l->in, l->out);
 	/* if we have a "&" then we don't have to wait for the process to finish */
 	if(!l->bg) {
 		/* father has to wait for his child to terminate */
@@ -175,8 +189,19 @@ int main() {
         /* register "executer" function in scheme */
         scm_c_define_gsubr("executer", 1, 0, 0, executer_wrapper);
 #endif
-	/* do sigaction handling here */
-
+	
+	/* create the list of tasks/commands to execute */
+	task_list = create_tasks();
+	
+	/* sigaction handling done here */
+	struct sigaction SIG_ACTION;
+	memset(&SIG_ACTION, '\0', sizeof(SIG_ACTION));
+	SIG_ACTION.sa_sigaction = &timeHandler;
+	SIG_ACTION.sa_flags = SA_SIGINFO | SA_NOCLDSTOP;
+	if(sigaction(SIGCHLD, &SIG_ACTION, NULL) == -1){
+		perror("SIGACTION");
+	}
+	
 	/* infinite loop - waiting for commands */
 	while (1) {
 		//struct cmdline *l;
@@ -190,9 +215,10 @@ int main() {
 		line = readline(prompt);
 		if (line == 0 || ! strncmp(line,"exit", 4)) {
 			terminate(line);
-			} else {
+		} else if(!strncmp(line,"jobs", 4)) {
 			/* deal with "jobs" -> give process to list of processes */
-			
+			task_list = clean_tasks(task_list);
+			print_tasks(task_list);
 		}
 		
 #ifdef USE_GNU_READLINE
