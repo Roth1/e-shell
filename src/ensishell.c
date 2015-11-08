@@ -34,18 +34,6 @@
 
 Tasks task_list;
 
-void timeHandler(siginfo_t *data, void *context) {
-	Tasks task = find_task(task_list, data->si_pid);
-	/* no corresponding task/command was found */
-	if(!task) {
-		printf("pid %d terminated.\n", data->si_pid);
-	} else {
-		struct timeval time_terminated;
-		gettimeofday(&time_terminated, NULL);
-		printf("pid %d:%s terminated (%ldms).\n", task->pid, task->cmd, (-task->task_time.tv_sec + time_terminated.tv_sec)*1000+(-task->task_time.tv_usec+time_terminated.tv_usec)/1000);
-	}
-}
-
 pid_t creer_processus(char ***seq, char *in, char *out) {
 	int i = 0;
 	/* limited to 2 commands ! */
@@ -59,8 +47,8 @@ pid_t creer_processus(char ***seq, char *in, char *out) {
 		}
 		pipe_in[0] = pipe_out[0];
 		pipe_in[1] = pipe_out[1];
-		/* si */
-		if(seq[i+1] != NULL) {
+		/* if there is a next task */
+		if(seq[i+1]) {
 			/* create a pipe for interprocess communication */ 
 			//pipe(pipe_out);
 			if (pipe(pipe_out) == -1) {
@@ -77,7 +65,7 @@ pid_t creer_processus(char ***seq, char *in, char *out) {
 		}
 		/* fork successful */
 		if(pid_fils == 0) {
-			/*  */
+			/* first command and input */
 			if(i == 0 && in) {
 				/* open gives us a descriptor - using read-only flag */
 				int descripteur_in = open(in, O_RDONLY);
@@ -85,7 +73,7 @@ pid_t creer_processus(char ***seq, char *in, char *out) {
 				dup2(descripteur_in, 0);
 				close(descripteur_in);
 			}
-			/*  */
+			/* subsequent commands */
 			if(i != 0) {
 				/* copy file descriptor */
 				dup2(pipe_in[0], 0);
@@ -121,7 +109,7 @@ pid_t creer_processus(char ***seq, char *in, char *out) {
 				dernier_pid = pid_fils;
 			}
 		}
-		/* */
+		/* no next command and multiple commands */
 		if(!seq[i+1] && i > 0) {
 			close(pipe_in[0]);
 			close(pipe_in[1]);
@@ -166,6 +154,19 @@ SCM executer_wrapper(SCM x)
 {
         return scm_from_int(executer(scm_to_locale_stringn(x, 0)));
 }
+
+void timeHandler(int signum, siginfo_t *data, void *context) {
+	Tasks task = find_task(task_list, data->si_pid);
+	/* no corresponding task/command was found */
+	if(!task) {
+		printf("pid %d terminated.\n", data->si_pid);
+	} else {
+		struct timeval time_terminated;
+		gettimeofday(&time_terminated, NULL);
+		printf("pid %d:%s terminated (%ldms).\n", task->pid, task->cmd, (-task->task_time.tv_sec + time_terminated.tv_sec)*1000+(-task->task_time.tv_usec+time_terminated.tv_usec)/1000);
+	}
+}
+
 #endif
 
 
