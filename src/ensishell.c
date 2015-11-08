@@ -195,7 +195,7 @@ int main() {
 	task_list = create_tasks();
 	
 	/* sigaction handling done here */
-	struct sigaction SIG_ACTION;
+	struct sigaction SIG_ACTION = {};
 	memset(&SIG_ACTION, '\0', sizeof(SIG_ACTION));
 	SIG_ACTION.sa_sigaction = &timeHandler;
 	SIG_ACTION.sa_flags = SA_SIGINFO | SA_NOCLDSTOP;
@@ -216,10 +216,12 @@ int main() {
 		line = readline(prompt);
 		if (line == 0 || ! strncmp(line,"exit", 4)) {
 			terminate(line);
+			continue;
 		} else if(!strncmp(line,"jobs", 4)) {
 			/* deal with "jobs" -> give process to list of processes */
 			task_list = clean_tasks(task_list);
 			print_tasks(task_list);
+			continue;
 		}
 		
 #ifdef USE_GNU_READLINE
